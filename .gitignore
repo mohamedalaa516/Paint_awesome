@@ -1,0 +1,50 @@
+# Visual Studio
+.vs/
+*.vcxproj.user
+*.vcxproj.filters
+*.suo
+*.user
+*.ncb
+*.opensdf
+*.sdf
+*.ipch
+*.iobj
+*.pdb
+*.idb
+*.class
+*.ilk
+*.log
+*.obj
+*.exe
+*.dll
+*.lib
+*.app
+*.o
+*.out
+
+# Build folders
+Debug/
+Release/
+x64/
+x86/
+
+# CMake files 
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# SFML binaries
+*.dll
+
+# ImGui build files 
+*.o
+*.a
+
+# Backup files
+*.bak
+*.tmp
+*.swp
+
+# Others
+.DS_Store

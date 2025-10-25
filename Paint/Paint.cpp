@@ -1,0 +1,114 @@
+﻿#include <SFML/Graphics.hpp>
+#include <imgui.h>
+#include <imgui-SFML.h>
+#include <vector>
+#include <iostream>
+
+using namespace sf;
+using namespace std;
+
+int main() {
+    RenderWindow window(VideoMode(1280, 720), "Paint");
+    ImGui::SFML::Init(window);
+
+    bool flagDraw = false;
+    bool flagErase = false;
+    CircleShape circle;
+    vector<CircleShape> v;
+    v.reserve(100000);
+
+    Clock deltaClock;
+
+    static float brushSize = 5.f;
+    static float eraserSize = 20.f;
+    static ImVec4 brushColor = ImVec4(0, 0, 0, 1);
+
+    while (window.isOpen()) {
+        Event event;
+        while (window.pollEvent(event)) {
+            ImGui::SFML::ProcessEvent(event);
+            if (event.type == Event::Closed)
+                window.close();
+
+            static bool hasPrev = false;
+            static Vector2f prevPos;
+
+            if (event.type == Event::MouseMoved && Mouse::isButtonPressed(Mouse::Left)) {
+                Vector2f currentPos(event.mouseMove.x, event.mouseMove.y);
+
+                if (flagDraw) {
+                    if (hasPrev) {
+                        Vector2f diff = currentPos - prevPos;
+                        float distance = sqrt(diff.x * diff.x + diff.y * diff.y);
+                        int steps = static_cast<int>(distance / 2.f);
+
+                        for (int i = 0; i <= steps; ++i) {
+                            float t = (steps == 0 ? 0.f : static_cast<float>(i) / steps);
+                            Vector2f interp = prevPos + t * diff;
+
+                            circle.setRadius(brushSize);
+                            circle.setFillColor(Color(
+                                brushColor.x * 255,
+                                brushColor.y * 255,
+                                brushColor.z * 255
+                            ));
+                            circle.setPosition(interp);
+                            v.push_back(circle);
+                        }
+                    }
+                    prevPos = currentPos;
+                    hasPrev = true;
+                }
+
+
+                else if (flagErase) {
+                    circle.setRadius(eraserSize);
+                    circle.setFillColor(Color::White);
+                    circle.setPosition(currentPos);
+                    v.push_back(circle);
+                }
+            }
+
+            if (event.type == Event::MouseButtonReleased && event.mouseButton.button == Mouse::Left)
+                hasPrev = false;
+        }
+
+
+        ImGui::SFML::Update(window, deltaClock.restart());
+        ImGui::SetNextWindowPos(ImVec2(10, 10));
+        ImGui::SetNextWindowSize(ImVec2(280, 230));
+
+        ImGui::Begin("Paint Tools", nullptr, ImGuiWindowFlags_NoResize);
+
+        if (ImGui::Button("Draw", ImVec2(80, 40))) {
+            flagDraw = true;
+            flagErase = false;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Erase", ImVec2(80, 40))) {
+            flagErase = true;
+            flagDraw = false;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Clear All", ImVec2(80, 40))) {
+            v.clear();
+        }
+
+        ImGui::Separator();
+        ImGui::SliderFloat("Brush Size", &brushSize, 1.f, 30.f);
+        ImGui::SliderFloat("Eraser Size", &eraserSize, 5.f, 50.f);
+        ImGui::ColorEdit3("Brush Color", (float*)&brushColor);
+
+        ImGui::End();
+
+        window.clear(Color::White);
+        for (auto& c : v)
+            window.draw(c);
+
+        ImGui::SFML::Render(window);
+        window.display();
+    }
+
+    ImGui::SFML::Shutdown();
+    return 0;
+}
