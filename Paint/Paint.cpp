@@ -80,8 +80,56 @@ int main() {
 
         ImGui::SFML::Update(window, deltaClock.restart());
 
+        // --- ✅ شريط القوائم العلوي (Menu Bar) ---
+        if (ImGui::BeginMainMenuBar()) {
+            if (ImGui::BeginMenu("File")) {
+                if (ImGui::MenuItem("New")) {
+                    v.clear();
+                }
+                if (ImGui::MenuItem("Save")) {
+                    Texture texture;
+                    texture.create(window.getSize().x, window.getSize().y);
+                    texture.update(window);
+                    Image screenshot = texture.copyToImage();
+                    if (screenshot.saveToFile("painting.png"))
+                        cout << "✅ Saved successfully as painting.png" << endl;
+                    else
+                        cout << "❌ Failed to save image!" << endl;
+                }
+                if (ImGui::MenuItem("Exit")) {
+                    window.close();
+                }
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("Edit")) {
+                if (ImGui::MenuItem("Clear All")) {
+                    v.clear();
+                }
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("Help")) {
+                if (ImGui::MenuItem("About")) {
+                    ImGui::OpenPopup("AboutWindow");
+                }
+                ImGui::EndMenu();
+            }
+
+            ImGui::EndMainMenuBar();
+        }
+
+        // نافذة "About"
+        if (ImGui::BeginPopup("AboutWindow")) {
+            ImGui::Text("Simple Paint Program");
+            ImGui::Text("Created by Mohamed using SFML + ImGui");
+            ImGui::Separator();
+            ImGui::Text("Press and hold left mouse to draw.");
+            ImGui::EndPopup();
+        }
+
         // --- واجهة الأدوات ---
-        ImGui::SetNextWindowPos(ImVec2(10, 10));
+        ImGui::SetNextWindowPos(ImVec2(10, 40)); // ↓ نزلها تحت المينيو بار
         ImGui::SetNextWindowSize(ImVec2(400, 180));
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.1f, 0.1f, 0.1f, 0.95f));
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 1, 1));
@@ -90,7 +138,6 @@ int main() {
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.8f, 0.3f, 0.3f, 1));
 
         ImGui::Begin("Paint Tools", nullptr,
-             
             ImGuiWindowFlags_NoResize |
             ImGuiWindowFlags_NoMove);
 
