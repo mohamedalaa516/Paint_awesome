@@ -12,9 +12,8 @@ int main() {
     RenderWindow window(VideoMode(1280, 720), "Paint");
     ImGui::SFML::Init(window);
 
-    // --- تحميل خط Font Awesome ---
     ImGuiIO& io = ImGui::GetIO();
-    io.Fonts->AddFontDefault(); // الخط الأساسي
+    io.Fonts->AddFontDefault();
     ImFontConfig config;
     config.MergeMode = true;
     config.PixelSnapH = true;
@@ -29,6 +28,7 @@ int main() {
     v.reserve(100000);
 
     Clock deltaClock;
+    Clock frameClock; // ⬅️ أضفها هنا
     static float brushSize = 5.f;
     static float eraserSize = 20.f;
     static ImVec4 brushColor = ImVec4(0, 0, 0, 1);
@@ -80,7 +80,6 @@ int main() {
 
         ImGui::SFML::Update(window, deltaClock.restart());
 
-        // --- ✅ شريط القوائم العلوي (Menu Bar) ---
         if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu("File")) {
                 if (ImGui::MenuItem("New")) {
@@ -119,7 +118,6 @@ int main() {
             ImGui::EndMainMenuBar();
         }
 
-        // نافذة "About"
         if (ImGui::BeginPopup("AboutWindow")) {
             ImGui::Text("Simple Paint Program");
             ImGui::Text("Created by Mohamed using SFML + ImGui");
@@ -128,9 +126,8 @@ int main() {
             ImGui::EndPopup();
         }
 
-        // --- واجهة الأدوات ---
-        ImGui::SetNextWindowPos(ImVec2(10, 40)); // ↓ نزلها تحت المينيو بار
-        ImGui::SetNextWindowSize(ImVec2(400, 180));
+        ImGui::SetNextWindowPos(ImVec2(0, 19));
+        ImGui::SetNextWindowSize(ImVec2(3000, 50));
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.1f, 0.1f, 0.1f, 0.95f));
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 1, 1));
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.25f, 0.25f, 0.25f, 1));
@@ -139,32 +136,42 @@ int main() {
 
         ImGui::Begin("Paint Tools", nullptr,
             ImGuiWindowFlags_NoResize |
+            ImGuiWindowFlags_NoTitleBar |
             ImGuiWindowFlags_NoMove);
 
         ImGui::PushFont(iconFont);
 
-        // Draw button (pencil)
-        if (ImGui::Button(u8"\uf304", ImVec2(50, 50))) {
+        if (ImGui::Button(u8"\uf304", ImVec2(30, 30))) {
             flagDraw = true;
             flagErase = false;
+            ImGui::OpenPopup("BrushPopup");
+        }
+
+        if (ImGui::BeginPopup("BrushPopup")) {
+            ImGui::SliderFloat("Brush Size", &brushSize, 1.f, 30.f);
+            ImGui::ColorEdit3("Brush Color", (float*)&brushColor);
+            ImGui::EndPopup();
         }
         ImGui::SameLine();
 
-        // Erase button (eraser)
-        if (ImGui::Button(u8"\uf12d", ImVec2(50, 50))) {
+        if (ImGui::Button(u8"\uf12d", ImVec2(30, 30))) {
             flagErase = true;
             flagDraw = false;
+            ImGui::OpenPopup("ErasePopup");
+
+        }
+        if (ImGui::BeginPopup("ErasePopup")) {
+            ImGui::SliderFloat("Eraser Size", &eraserSize, 5.f, 50.f);
+            ImGui::EndPopup();
         }
         ImGui::SameLine();
 
-        // Clear button (broom)
-        if (ImGui::Button(u8"\uf51a", ImVec2(50, 50))) {
+        if (ImGui::Button(u8"\uf51a", ImVec2(30, 30))) {
             v.clear();
         }
         ImGui::SameLine();
 
-        // Save button (floppy disk)
-        if (ImGui::Button(u8"\uf0c7", ImVec2(50, 50))) {
+        if (ImGui::Button(u8"\uf0c7", ImVec2(30, 30))) {
             Texture texture;
             texture.create(window.getSize().x, window.getSize().y);
             texture.update(window);
@@ -177,15 +184,9 @@ int main() {
 
         ImGui::PopFont();
 
-        ImGui::Separator();
-        ImGui::SliderFloat("Brush Size", &brushSize, 1.f, 30.f);
-        ImGui::SliderFloat("Eraser Size", &eraserSize, 5.f, 50.f);
-        ImGui::ColorEdit3("Brush Color", (float*)&brushColor);
-
         ImGui::End();
         ImGui::PopStyleColor(5);
 
-        // --- الرسم على الشاشة ---
         window.clear(Color::White);
         for (auto& c : v)
             window.draw(c);
@@ -194,6 +195,7 @@ int main() {
         window.display();
     }
 
-    ImGui::SFML::Shutdown();
-    return 0;
+        ImGui::SFML::Shutdown();
+        return 0;
 }
+
