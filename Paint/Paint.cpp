@@ -3,6 +3,7 @@
 #include <imgui-SFML.h>
 #include <vector>
 #include <iostream>
+#include <cmath>
 
 using namespace sf;
 using namespace std;
@@ -11,6 +12,16 @@ int main() {
     RenderWindow window(VideoMode(1280, 720), "Paint");
     ImGui::SFML::Init(window);
 
+    // --- تحميل خط Font Awesome ---
+    ImGuiIO& io = ImGui::GetIO();
+    io.Fonts->AddFontDefault(); // الخط الأساسي
+    ImFontConfig config;
+    config.MergeMode = true;
+    config.PixelSnapH = true;
+    static const ImWchar icons_ranges[] = { 0xf000, 0xf8ff, 0 };
+    ImFont* iconFont = io.Fonts->AddFontFromFileTTF("fa-solid-900.ttf", 24.0f, &config, icons_ranges);
+    ImGui::SFML::UpdateFontTexture();
+
     bool flagDraw = false;
     bool flagErase = false;
     CircleShape circle;
@@ -18,7 +29,6 @@ int main() {
     v.reserve(100000);
 
     Clock deltaClock;
-
     static float brushSize = 5.f;
     static float eraserSize = 20.f;
     static ImVec4 brushColor = ImVec4(0, 0, 0, 1);
@@ -29,70 +39,96 @@ int main() {
             ImGui::SFML::ProcessEvent(event);
             if (event.type == Event::Closed)
                 window.close();
-
-            static bool hasPrev = false;
-            static Vector2f prevPos;
-
-            if (event.type == Event::MouseMoved && Mouse::isButtonPressed(Mouse::Left)) {
-                Vector2f currentPos(event.mouseMove.x, event.mouseMove.y);
-
-                if (flagDraw) {
-                    if (hasPrev) {
-                        Vector2f diff = currentPos - prevPos;
-                        float distance = sqrt(diff.x * diff.x + diff.y * diff.y);
-                        int steps = static_cast<int>(distance / 2.f);
-
-                        for (int i = 0; i <= steps; ++i) {
-                            float t = (steps == 0 ? 0.f : static_cast<float>(i) / steps);
-                            Vector2f interp = prevPos + t * diff;
-
-                            circle.setRadius(brushSize);
-                            circle.setFillColor(Color(
-                                brushColor.x * 255,
-                                brushColor.y * 255,
-                                brushColor.z * 255
-                            ));
-                            circle.setPosition(interp);
-                            v.push_back(circle);
-                        }
-                    }
-                    prevPos = currentPos;
-                    hasPrev = true;
-                }
-
-
-                else if (flagErase) {
-                    circle.setRadius(eraserSize);
-                    circle.setFillColor(Color::White);
-                    circle.setPosition(currentPos);
-                    v.push_back(circle);
-                }
-            }
-
-            if (event.type == Event::MouseButtonReleased && event.mouseButton.button == Mouse::Left)
-                hasPrev = false;
         }
 
+        // الرسم بالماوس
+        static bool hasPrev = false;
+        static Vector2f prevPos;
+        if (Mouse::isButtonPressed(Mouse::Left)) {
+            Vector2f currentPos(Mouse::getPosition(window));
+
+            if (flagDraw) {
+                if (hasPrev) {
+                    Vector2f diff = currentPos - prevPos;
+                    float distance = sqrt(diff.x * diff.x + diff.y * diff.y);
+                    int steps = static_cast<int>(distance / 2.f);
+                    for (int i = 0; i <= steps; ++i) {
+                        float t = (steps == 0 ? 0.f : static_cast<float>(i) / steps);
+                        Vector2f interp = prevPos + t * diff;
+
+                        circle.setRadius(brushSize);
+                        circle.setFillColor(Color(
+                            brushColor.x * 255,
+                            brushColor.y * 255,
+                            brushColor.z * 255
+                        ));
+                        circle.setPosition(interp);
+                        v.push_back(circle);
+                    }
+                }
+                prevPos = currentPos;
+                hasPrev = true;
+            }
+            else if (flagErase) {
+                circle.setRadius(eraserSize);
+                circle.setFillColor(Color::White);
+                circle.setPosition(currentPos);
+                v.push_back(circle);
+            }
+        }
+        else hasPrev = false;
 
         ImGui::SFML::Update(window, deltaClock.restart());
+
+        // --- واجهة الأدوات ---
         ImGui::SetNextWindowPos(ImVec2(10, 10));
-        ImGui::SetNextWindowSize(ImVec2(280, 230));
+        ImGui::SetNextWindowSize(ImVec2(400, 180));
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.1f, 0.1f, 0.1f, 0.95f));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 1, 1));
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.25f, 0.25f, 0.25f, 1));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.5f, 0.5f, 0.5f, 1));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.8f, 0.3f, 0.3f, 1));
 
-        ImGui::Begin("Paint Tools", nullptr, ImGuiWindowFlags_NoResize);
+        ImGui::Begin("Paint Tools", nullptr,
+             
+            ImGuiWindowFlags_NoResize |
+            ImGuiWindowFlags_NoMove);
 
-        if (ImGui::Button("Draw", ImVec2(80, 40))) {
+        ImGui::PushFont(iconFont);
+
+        // Draw button (pencil)
+        if (ImGui::Button(u8"\uf304", ImVec2(50, 50))) {
             flagDraw = true;
             flagErase = false;
         }
         ImGui::SameLine();
-        if (ImGui::Button("Erase", ImVec2(80, 40))) {
+
+        // Erase button (eraser)
+        if (ImGui::Button(u8"\uf12d", ImVec2(50, 50))) {
             flagErase = true;
             flagDraw = false;
         }
         ImGui::SameLine();
-        if (ImGui::Button("Clear All", ImVec2(80, 40))) {
+
+        // Clear button (broom)
+        if (ImGui::Button(u8"\uf51a", ImVec2(50, 50))) {
             v.clear();
         }
+        ImGui::SameLine();
+
+        // Save button (floppy disk)
+        if (ImGui::Button(u8"\uf0c7", ImVec2(50, 50))) {
+            Texture texture;
+            texture.create(window.getSize().x, window.getSize().y);
+            texture.update(window);
+            Image screenshot = texture.copyToImage();
+            if (screenshot.saveToFile("painting.png"))
+                cout << "✅ Saved successfully as painting.png" << endl;
+            else
+                cout << "❌ Failed to save image!" << endl;
+        }
+
+        ImGui::PopFont();
 
         ImGui::Separator();
         ImGui::SliderFloat("Brush Size", &brushSize, 1.f, 30.f);
@@ -100,7 +136,9 @@ int main() {
         ImGui::ColorEdit3("Brush Color", (float*)&brushColor);
 
         ImGui::End();
+        ImGui::PopStyleColor(5);
 
+        // --- الرسم على الشاشة ---
         window.clear(Color::White);
         for (auto& c : v)
             window.draw(c);
